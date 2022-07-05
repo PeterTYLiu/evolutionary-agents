@@ -7,8 +7,14 @@ function getRandomInt(min: number, max: number) {
 }
 
 export default function randCoord(
-    width: number = canvasWidth,
-    height: number = canvasHeight
+    minX: number = 0,
+    minY: number = 0,
+    maxX: number = canvasWidth,
+    maxY: number = canvasHeight
 ): [number, number] {
-    return [getRandomInt(0, width), getRandomInt(0, height)]
+    if (minX < 0) minX = 0
+    if (minY < 0) minY = 0
+    if (maxX > canvasWidth) maxX = canvasWidth
+    if (maxY > canvasHeight) maxY = canvasHeight
+    return [getRandomInt(minX, maxX), getRandomInt(minY, maxY)]
 }

@@ -120,7 +120,8 @@ const terminalOnlyConsonants = [
     'ms',
     'gs',
     'cks',
-    'ks'
+    'ks',
+    'ff'
 ]
 const placementAgnosticConsonants = [
     't',
@@ -276,7 +277,7 @@ export default function fakeWord(): string {
     }
 
     let word = ''
-    const numOfSyllables = Math.ceil(Math.random() * 4)
+    const numOfSyllables = Math.ceil(Math.random() * 3)
 
     for (let i = 1; i <= numOfSyllables; i++) {
         let isInitial = i === 1

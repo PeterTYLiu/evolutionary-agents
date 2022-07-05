@@ -11,10 +11,15 @@ import {
     defaultAnimationSpeed,
     startingAgents,
     hungerRate,
-    startingFullness,
     defaultPerception,
-    samplingRate
+    samplingRate,
+    defaultStartingEnergy,
+    reproductionCost,
+    maxSamples
 } from 'src/variables'
+// Components
+import SamplesGraph from 'src/components/SamplesGraph/SamplesGraph'
+// Utilities
 import randCoord from 'src/utilities/randCoord'
 import distBetween from 'src/utilities/distBetween'
 
@@ -28,9 +33,12 @@ export default function HomePage() {
     const [animationSpeed, setAnimationSpeed] = useState(defaultAnimationSpeed)
     const [carryingCapSamples, setCarryingCapSamples] = useState<number[]>([])
     const [avgPerceptSamples, setAvgPerceptSamples] = useState<number[]>([])
+    const [avgEarSamples, setAvgEarSamples] = useState<number[]>([])
 
     let averagePerception =
         agents.reduce((a, b) => a + b.perception, 0) / agents.length
+    let averageStartingEnergy =
+        agents.reduce((a, b) => a + b.startingEnergy, 0) / agents.length
 
     const canvasRef = useRef(null)
 
@@ -40,7 +48,10 @@ export default function HomePage() {
     ) => {
         let newAgents = []
         for (let i = 0; i < numOfAgents; i++) {
-            newAgents.push(new Agent(0, 0, startingPerception, 1))
+            let [x, y] = randCoord()
+            newAgents.push(
+                new Agent(x, y, startingPerception, defaultStartingEnergy)
+            )
         }
         setAgents(newAgents)
     }
@@ -63,17 +74,42 @@ export default function HomePage() {
         setSimState('active')
     }
 
+    const endSim = () => {
+        setSimState('before')
+        setAgents([])
+        setFood([])
+        setCurrentTick(1)
+        setCarryingCapSamples([])
+        setAvgPerceptSamples([])
+        setAvgEarSamples([])
+    }
+
     // Change the state every 50ms
     useEffect(() => {
         if (simState !== 'active') return
         const interval = setInterval(() => {
             // Sample data
             if (currentTick % samplingRate === 0) {
-                setCarryingCapSamples([...carryingCapSamples, agents.length])
-                setAvgPerceptSamples([
+                let newAvgEarSamples = [...avgEarSamples, averageStartingEnergy]
+                if (newAvgEarSamples.length > maxSamples)
+                    newAvgEarSamples.shift()
+                setAvgEarSamples(newAvgEarSamples)
+
+                let newCarryingCapSamples = [
+                    ...carryingCapSamples,
+                    agents.length
+                ]
+                if (newCarryingCapSamples.length > maxSamples)
+                    newCarryingCapSamples.shift()
+                setCarryingCapSamples(newCarryingCapSamples)
+
+                let newAvgPerceptSamples = [
                     ...avgPerceptSamples,
-                    Number(averagePerception.toFixed(3))
-                ])
+                    Number((averagePerception * 100).toFixed(1))
+                ]
+                if (newAvgPerceptSamples.length > maxSamples)
+                    newAvgPerceptSamples.shift()
+                setAvgPerceptSamples(newAvgPerceptSamples)
             }
 
             let currentFood = [...food]
@@ -89,26 +125,27 @@ export default function HomePage() {
             }
 
             // If agent is completely void of energy, it dies
-            currentAgents = currentAgents.filter((a) => a.fullness > 0)
+            currentAgents = currentAgents.filter((a) => a.energy > 0)
 
             // Agents get hungry every ${hungerRate} ticks
             if (currentTick % hungerRate === 0) {
-                currentAgents.forEach((a) => a.fullness--)
+                currentAgents.forEach((a) => a.energy--)
             }
 
             currentAgents.forEach((a) => {
                 a.periodsSurvived++
-                // If agent is mature enough and has enough energy, it reproduces
-                if (a.fullness > startingFullness * 2) {
+                // If agent has enough energy, it reproduces
+                if (a.energy >= a.reproductionThreshold) {
                     currentAgents.push(
                         new Agent(
                             a.x + 4,
                             a.y + 4,
                             a.perception,
+                            a.startingEnergy,
                             a.generation + 1
                         )
                     )
-                    a.fullness -= startingFullness + 5
+                    a.energy -= a.startingEnergy + reproductionCost
                 }
 
                 let [destX, destY] = a.destination
@@ -121,7 +158,7 @@ export default function HomePage() {
                     currentFood = currentFood.filter(
                         (f) => f.id !== foodBeingEaten.id
                     )
-                    a.fullness++
+                    a.energy++
                 }
 
                 // Identify the nearest visible piece of food
@@ -144,7 +181,16 @@ export default function HomePage() {
 
                 // If the agent is at its destination, make the nearest food or a random location its new destination
                 if (a.x === a.destination[0] && a.y === a.destination[1]) {
-                    let newDest = nearestVisibleFood ?? randCoord()
+                    let newDestOffset = a.distPerceptible + 200
+                    let newDest =
+                        nearestVisibleFood ??
+                        // A random coordinate on the map that has an equal probability of being in any direction
+                        randCoord(
+                            a.x - newDestOffset,
+                            a.y - newDestOffset,
+                            a.x + newDestOffset,
+                            a.y + newDestOffset
+                        )
                     a.destination = newDest
                     a.destinationIsFood = !!nearestVisibleFood
                     destX = newDest[0]
@@ -217,11 +263,14 @@ export default function HomePage() {
         ctx.strokeStyle = '#f55'
         ctx.font = '14px arial'
         agents.forEach((a) => {
+            let [destX, destY] = a.destination
+            // Draw the agent's name
+            ctx.fillText(a.name, a.x, a.y + 22)
             // Draw the line to the destination
             ctx.setLineDash([4])
             ctx.beginPath()
             ctx.moveTo(a.x, a.y)
-            ctx.lineTo(a.destination[0], a.destination[1])
+            ctx.lineTo(destX, destY)
             ctx.stroke()
             // Draw the background of the energy indicator
             ctx.fillStyle = '#fff'
@@ -231,20 +280,25 @@ export default function HomePage() {
             // Draw the outline of the energy indicator
             ctx.fillStyle = '#f00'
             ctx.setLineDash([0])
-            ctx.fillText(a.id.split('-')[1], a.x, a.y + 22)
-            ctx.beginPath()
             ctx.arc(a.x, a.y, 10, 0, 2 * Math.PI)
             ctx.stroke()
+            // Draw the energy indicator
             ctx.beginPath()
-            ctx.arc(a.x, a.y, 10, 0, Math.PI * (a.fullness / startingFullness))
+            ctx.arc(
+                a.x,
+                a.y,
+                10,
+                0,
+                2 * Math.PI * (a.energy / a.reproductionThreshold)
+            )
             ctx.lineTo(a.x, a.y)
             ctx.fill()
             ctx.beginPath()
-            ctx.arc(a.destination[0], a.destination[1], 2, 0, 2 * Math.PI)
+            ctx.arc(destX, destY, 2, 0, 2 * Math.PI)
             ctx.fill()
         })
         // Draw the food
-        ctx.fillStyle = '#666'
+        ctx.fillStyle = '#2b5'
         food.forEach((a) => {
             ctx.beginPath()
             ctx.arc(a.x, a.y, 3, 0, 2 * Math.PI)
@@ -258,7 +312,7 @@ export default function HomePage() {
             let foodBeingEaten = food.find((f) => f.x === a.x && f.y === a.y)
             if (foodBeingEaten) ctx.fillText('RONCH!', a.x, a.y - 6)
             if (a.periodsSurvived < 15) ctx.fillText('Mitosis!', a.x, a.y - 6)
-            if (a.fullness === 0) ctx.fillText('ARGH!', a.x, a.y - 6)
+            if (a.energy === 0) ctx.fillText('ARGH!', a.x, a.y - 6)
         })
     }, [currentTick, simState])
 
@@ -266,22 +320,32 @@ export default function HomePage() {
         <main>
             <MetaTags title="Home" description="Home page" />
             <div>
-                <button type="button" onClick={startSim}>
-                    Start
-                </button>
-                <button type="button" onClick={() => setSimState('paused')}>
-                    Pause
-                </button>
-                <button type="button" onClick={() => setSimState('active')}>
-                    Resume
-                </button>
+                {simState === 'before' ? (
+                    <button type="button" onClick={startSim}>
+                        Start
+                    </button>
+                ) : (
+                    <button type="button" onClick={endSim}>
+                        End
+                    </button>
+                )}
+                {simState === 'active' && (
+                    <button type="button" onClick={() => setSimState('paused')}>
+                        Pause
+                    </button>
+                )}
+                {simState === 'paused' && (
+                    <button type="button" onClick={() => setSimState('active')}>
+                        Resume
+                    </button>
+                )}
                 <div style={{ display: 'inline' }}>
                     <input
                         type="range"
                         id="animation-speed"
                         name="animation-speed"
-                        min="5"
-                        max="100"
+                        min="4"
+                        max="200"
                         value={animationSpeed}
                         onChange={(e) =>
                             setAnimationSpeed(parseInt(e.target.value))
@@ -295,7 +359,7 @@ export default function HomePage() {
                         id="food-gen"
                         name="food-gen"
                         min="1"
-                        max="6"
+                        max="20"
                         value={foodGenRate}
                         onChange={(e) =>
                             setFoodGenRate(parseInt(e.target.value))
@@ -310,21 +374,45 @@ export default function HomePage() {
                     width={canvasWidth}
                     height={canvasHeight}
                     style={{
-                        outline: '1px solid black',
+                        border: '1px solid black',
                         flexGrow: '0',
                         flexShrink: '0'
                     }}
                 />
                 <div style={{ paddingLeft: '16px' }}>
+                    <SamplesGraph
+                        title="Population size"
+                        colour="#f00"
+                        data={carryingCapSamples}
+                        value={agents.length}
+                    />
                     <h3>
                         {startingAgents} → {agents.length} agents
                     </h3>
+                    <SamplesGraph
+                        title="Average perception"
+                        colour="#0d0"
+                        data={avgPerceptSamples}
+                        value={averagePerception}
+                    />
                     <h3>
                         Average perception: {defaultPerception} →{' '}
                         {averagePerception.toFixed(2)}
                     </h3>
+                    <SamplesGraph
+                        title="Average energy at mitosis"
+                        colour="#00e"
+                        data={avgEarSamples}
+                        value={averageStartingEnergy}
+                    />
+                    <h3>
+                        Average{' '}
+                        <abbr title="energy after reproduction">EAR</abbr>:{' '}
+                        {defaultStartingEnergy} →{' '}
+                        {averageStartingEnergy.toFixed(2)}
+                    </h3>
                     <h3>Periods: {currentTick}</h3>
-                    <table>
+                    {/* <table>
                         <thead>
                             <tr>
                                 <th>Gen</th>
@@ -332,18 +420,24 @@ export default function HomePage() {
                                 <th>Age</th>
                                 <th>Perception</th>
                                 <th>Energy</th>
+                                <th>
+                                    <abbr title="energy after reproduction">
+                                        EAR
+                                    </abbr>
+                                </th>
+                                <th>🐛</th>
                             </tr>
                         </thead>
                         <tbody>
                             {[...agents]
                                 .sort((a, b) => {
-                                    if (a.perception > b.perception) return -1
+                                    if (a.generation > b.generation) return -1
                                     else return 1
                                 })
                                 .map((a) => (
                                     <tr key={a.id}>
                                         <td>{a.generation}</td>
-                                        <td>{a.id.split('-')[1]}</td>
+                                        <td>{a.name}</td>
                                         <td>{a.periodsSurvived}</td>
                                         <td
                                             style={{
@@ -354,27 +448,54 @@ export default function HomePage() {
                                                 }% 100% )`
                                             }}
                                         >
-                                            {a.perception.toFixed(2)}
+                                            {(a.perception * 100).toFixed(1)}%
                                         </td>
                                         <td
                                             style={{
                                                 background: `linear-gradient(90deg, lightgreen 0 ${
-                                                    (a.fullness /
-                                                        startingFullness) *
-                                                    50
+                                                    (100 * a.energy) /
+                                                    a.reproductionThreshold
                                                 }%, white ${
-                                                    (a.fullness /
-                                                        startingFullness) *
-                                                    50
+                                                    (100 * a.energy) /
+                                                    a.reproductionThreshold
                                                 }% 100% )`
                                             }}
                                         >
-                                            {a.fullness}
+                                            {a.energy}
+                                        </td>
+                                        <td
+                                            style={{
+                                                background: `linear-gradient(90deg, lightgreen 0 ${
+                                                    (100 * a.startingEnergy) /
+                                                    maxStartingEnergy
+                                                }%, white ${
+                                                    (100 * a.startingEnergy) /
+                                                    maxStartingEnergy
+                                                }% 100% )`
+                                            }}
+                                        >
+                                            {a.startingEnergy}{' '}
+                                        </td>
+                                        <td>
+                                            <button
+                                                type="button"
+                                                onClick={() =>
+                                                    alert(
+                                                        JSON.stringify(
+                                                            a,
+                                                            undefined,
+                                                            2
+                                                        )
+                                                    )
+                                                }
+                                            >
+                                                🐛
+                                            </button>
                                         </td>
                                     </tr>
                                 ))}
                         </tbody>
-                    </table>
+                    </table> */}
                 </div>
             </div>
         </main>
