@@ -1,0 +1,56 @@
+@keyframes fade-in {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+body,
+html,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    margin: 0;
+    font-family: Arial, Helvetica, sans-serif;
+}
+table {
+    border-spacing: 0;
+}
+td,
+th {
+    padding: 4px;
+    border: 1px solid black;
+}
+tr {
+    animation: fade-in 0.6s;
+}
+
+.panel {
+    border: 1px solid black;
+    align-self: stretch;
+    width: 600px;
+}
+.panel--inner {
+    padding: 16px;
+    overflow-y: auto;
+}
+.panel--header {
+    align-items: center;
+    padding: 16px;
+    border-bottom: 1px solid black;
+    display: flex;
+    justify-content: space-between;
+}
+.panel--toggles button {
+    width: 80px;
+    padding: 6px;
+}
+.panel--toggles button.active {
+    background-color: lightcoral;
+    color: white;
+}

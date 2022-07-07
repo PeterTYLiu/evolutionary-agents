@@ -1,6 +1,6 @@
 import { MetaTags } from '@redwoodjs/web'
 import { useState, useRef, useEffect } from 'react'
-import { SimState } from 'types/types'
+import { SimState, Panel } from 'types/types'
 import Agent from 'src/logic/agent'
 import Food from 'src/logic/food'
 import {
@@ -34,11 +34,13 @@ export default function HomePage() {
     const [carryingCapSamples, setCarryingCapSamples] = useState<number[]>([])
     const [avgPerceptSamples, setAvgPerceptSamples] = useState<number[]>([])
     const [avgEarSamples, setAvgEarSamples] = useState<number[]>([])
+    const [panel, setPanel] = useState<Panel>('graphs')
 
     let averagePerception =
         agents.reduce((a, b) => a + b.perception, 0) / agents.length
     let averageStartingEnergy =
         agents.reduce((a, b) => a + b.startingEnergy, 0) / agents.length
+    let maxStartingEnergy = Math.max(...agents.map((a) => a.startingEnergy))
 
     const canvasRef = useRef(null)
 
@@ -69,6 +71,10 @@ export default function HomePage() {
     }
 
     const startSim = () => {
+        setCurrentTick(1)
+        setCarryingCapSamples([])
+        setAvgPerceptSamples([])
+        setAvgEarSamples([])
         generateAgents(startingAgents, defaultPerception)
         generateFood(startingFood)
         setSimState('active')
@@ -76,12 +82,6 @@ export default function HomePage() {
 
     const endSim = () => {
         setSimState('before')
-        setAgents([])
-        setFood([])
-        setCurrentTick(1)
-        setCarryingCapSamples([])
-        setAvgPerceptSamples([])
-        setAvgEarSamples([])
     }
 
     // Change the state every 50ms
@@ -344,7 +344,7 @@ export default function HomePage() {
                         type="range"
                         id="animation-speed"
                         name="animation-speed"
-                        min="4"
+                        min="1"
                         max="200"
                         value={animationSpeed}
                         onChange={(e) =>
@@ -379,123 +379,161 @@ export default function HomePage() {
                         flexShrink: '0'
                     }}
                 />
-                <div style={{ paddingLeft: '16px' }}>
-                    <SamplesGraph
-                        title="Population size"
-                        colour="#f00"
-                        data={carryingCapSamples}
-                        value={agents.length}
-                    />
-                    <h3>
-                        {startingAgents} → {agents.length} agents
-                    </h3>
-                    <SamplesGraph
-                        title="Average perception"
-                        colour="#0d0"
-                        data={avgPerceptSamples}
-                        value={averagePerception}
-                    />
-                    <h3>
-                        Average perception: {defaultPerception} →{' '}
-                        {averagePerception.toFixed(2)}
-                    </h3>
-                    <SamplesGraph
-                        title="Average energy at mitosis"
-                        colour="#00e"
-                        data={avgEarSamples}
-                        value={averageStartingEnergy}
-                    />
-                    <h3>
-                        Average{' '}
-                        <abbr title="energy after reproduction">EAR</abbr>:{' '}
-                        {defaultStartingEnergy} →{' '}
-                        {averageStartingEnergy.toFixed(2)}
-                    </h3>
-                    <h3>Periods: {currentTick}</h3>
-                    {/* <table>
-                        <thead>
-                            <tr>
-                                <th>Gen</th>
-                                <th>Name</th>
-                                <th>Age</th>
-                                <th>Perception</th>
-                                <th>Energy</th>
-                                <th>
+                <div className="panel">
+                    <div className="panel--header">
+                        <h3>Period: {currentTick}</h3>
+                        <div className="panel--toggles">
+                            <button
+                                className={panel === 'graphs' ? 'active' : ''}
+                                onClick={() => setPanel('graphs')}
+                            >
+                                Data
+                            </button>
+                            <button
+                                className={panel === 'agents' ? 'active' : ''}
+                                onClick={() => setPanel('agents')}
+                            >
+                                Agents
+                            </button>
+                            <button
+                                className={panel === 'about' ? 'active' : ''}
+                                onClick={() => setPanel('about')}
+                            >
+                                About
+                            </button>
+                        </div>
+                    </div>
+                    <div className="panel--inner">
+                        {panel === 'graphs' && (
+                            <>
+                                <SamplesGraph
+                                    title="Population size"
+                                    colour="#f00"
+                                    data={carryingCapSamples}
+                                    value={agents.length}
+                                />
+                                <h3>
+                                    {startingAgents} → {agents.length} agents
+                                </h3>
+                                <SamplesGraph
+                                    title="Average perception"
+                                    colour="#0d0"
+                                    data={avgPerceptSamples}
+                                    value={averagePerception}
+                                />
+                                <h3>
+                                    Average perception: {defaultPerception} →{' '}
+                                    {averagePerception.toFixed(2)}
+                                </h3>
+                                <SamplesGraph
+                                    title="Average energy at mitosis"
+                                    colour="#00e"
+                                    data={avgEarSamples}
+                                    value={averageStartingEnergy}
+                                />
+                                <h3>
+                                    Average{' '}
                                     <abbr title="energy after reproduction">
                                         EAR
                                     </abbr>
-                                </th>
-                                <th>🐛</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {[...agents]
-                                .sort((a, b) => {
-                                    if (a.generation > b.generation) return -1
-                                    else return 1
-                                })
-                                .map((a) => (
-                                    <tr key={a.id}>
-                                        <td>{a.generation}</td>
-                                        <td>{a.name}</td>
-                                        <td>{a.periodsSurvived}</td>
-                                        <td
-                                            style={{
-                                                background: `linear-gradient(90deg, lightgreen 0 ${
-                                                    a.perception * 100
-                                                }%, white ${
-                                                    a.perception * 100
-                                                }% 100% )`
-                                            }}
-                                        >
-                                            {(a.perception * 100).toFixed(1)}%
-                                        </td>
-                                        <td
-                                            style={{
-                                                background: `linear-gradient(90deg, lightgreen 0 ${
-                                                    (100 * a.energy) /
-                                                    a.reproductionThreshold
-                                                }%, white ${
-                                                    (100 * a.energy) /
-                                                    a.reproductionThreshold
-                                                }% 100% )`
-                                            }}
-                                        >
-                                            {a.energy}
-                                        </td>
-                                        <td
-                                            style={{
-                                                background: `linear-gradient(90deg, lightgreen 0 ${
-                                                    (100 * a.startingEnergy) /
-                                                    maxStartingEnergy
-                                                }%, white ${
-                                                    (100 * a.startingEnergy) /
-                                                    maxStartingEnergy
-                                                }% 100% )`
-                                            }}
-                                        >
-                                            {a.startingEnergy}{' '}
-                                        </td>
-                                        <td>
-                                            <button
-                                                type="button"
-                                                onClick={() =>
-                                                    alert(
-                                                        JSON.stringify(
-                                                            a,
-                                                            undefined,
-                                                            2
-                                                        )
-                                                    )
-                                                }
-                                            >
-                                                🐛
-                                            </button>
-                                        </td>
+                                    : {defaultStartingEnergy} →{' '}
+                                    {averageStartingEnergy.toFixed(2)}
+                                </h3>
+                            </>
+                        )}
+                        {panel === 'agents' && (
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Gen</th>
+                                        <th>Name</th>
+                                        <th>Age</th>
+                                        <th>Perception</th>
+                                        <th>Energy</th>
+                                        <th>
+                                            <abbr title="energy after reproduction">
+                                                EAR
+                                            </abbr>
+                                        </th>
+                                        <th>🐛</th>
                                     </tr>
-                                ))}
-                        </tbody>
-                    </table> */}
+                                </thead>
+                                <tbody>
+                                    {[...agents]
+                                        .sort((a, b) => {
+                                            if (a.generation > b.generation)
+                                                return -1
+                                            else return 1
+                                        })
+                                        .map((a) => (
+                                            <tr key={a.id}>
+                                                <td>{a.generation}</td>
+                                                <td>{a.name}</td>
+                                                <td>{a.periodsSurvived}</td>
+                                                <td
+                                                    style={{
+                                                        background: `linear-gradient(90deg, lightgreen 0 ${
+                                                            a.perception * 100
+                                                        }%, white ${
+                                                            a.perception * 100
+                                                        }% 100% )`
+                                                    }}
+                                                >
+                                                    {(
+                                                        a.perception * 100
+                                                    ).toFixed(1)}
+                                                    %
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        background: `linear-gradient(90deg, lightgreen 0 ${
+                                                            (100 * a.energy) /
+                                                            a.reproductionThreshold
+                                                        }%, white ${
+                                                            (100 * a.energy) /
+                                                            a.reproductionThreshold
+                                                        }% 100% )`
+                                                    }}
+                                                >
+                                                    {a.energy}
+                                                </td>
+                                                <td
+                                                    style={{
+                                                        background: `linear-gradient(90deg, lightgreen 0 ${
+                                                            (100 *
+                                                                a.startingEnergy) /
+                                                            maxStartingEnergy
+                                                        }%, white ${
+                                                            (100 *
+                                                                a.startingEnergy) /
+                                                            maxStartingEnergy
+                                                        }% 100% )`
+                                                    }}
+                                                >
+                                                    {a.startingEnergy}{' '}
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            alert(
+                                                                JSON.stringify(
+                                                                    a,
+                                                                    undefined,
+                                                                    2
+                                                                )
+                                                            )
+                                                        }
+                                                    >
+                                                        🐛
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        ))}
+                                </tbody>
+                            </table>
+                        )}
+                    </div>
                 </div>
             </div>
         </main>
