@@ -56,7 +56,8 @@ export default class Agent {
         this.perception = perception ** perceptionMutation
         this.speed = 1 - this.perception
         this.distPerTick = this.speed * distPerTickPerPercent
-        this.distPerceptible = this.perception * distPerceptiblePerPercent
+        this.distPerceptible =
+            (this.perception * distPerceptiblePerPercent) ** 2
         this.energy = startingEnergy
         this.startingEnergy = Math.round(
             startingEnergy * startingEnergyMutation

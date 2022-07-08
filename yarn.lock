@@ -3641,7 +3641,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redwoodjs/api@npm:2.0.0":
+"@redwoodjs/api@npm:2.0.0, @redwoodjs/api@npm:^2.0.0":
   version: 2.0.0
   resolution: "@redwoodjs/api@npm:2.0.0"
   dependencies:
@@ -3736,7 +3736,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redwoodjs/core@npm:2.0.0":
+"@redwoodjs/core@npm:^2.0.0":
   version: 2.0.0
   resolution: "@redwoodjs/core@npm:2.0.0"
   dependencies:
@@ -3835,7 +3835,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redwoodjs/forms@npm:2.0.0":
+"@redwoodjs/forms@npm:^2.0.0":
   version: 2.0.0
   resolution: "@redwoodjs/forms@npm:2.0.0"
   dependencies:
@@ -3850,7 +3850,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redwoodjs/graphql-server@npm:2.0.0":
+"@redwoodjs/graphql-server@npm:2.0.0, @redwoodjs/graphql-server@npm:^2.0.0":
   version: 2.0.0
   resolution: "@redwoodjs/graphql-server@npm:2.0.0"
   dependencies:
@@ -3941,7 +3941,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redwoodjs/router@npm:2.0.0":
+"@redwoodjs/router@npm:2.0.0, @redwoodjs/router@npm:^2.0.0":
   version: 2.0.0
   resolution: "@redwoodjs/router@npm:2.0.0"
   dependencies:
@@ -4042,7 +4042,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@redwoodjs/web@npm:2.0.0":
+"@redwoodjs/web@npm:2.0.0, @redwoodjs/web@npm:^2.0.0":
   version: 2.0.0
   resolution: "@redwoodjs/web@npm:2.0.0"
   dependencies:
@@ -7200,8 +7200,8 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "api@workspace:api"
   dependencies:
-    "@redwoodjs/api": 2.0.0
-    "@redwoodjs/graphql-server": 2.0.0
+    "@redwoodjs/api": ^2.0.0
+    "@redwoodjs/graphql-server": ^2.0.0
   languageName: unknown
   linkType: soft
 
@@ -20870,7 +20870,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "root-workspace-0b6124@workspace:."
   dependencies:
-    "@redwoodjs/core": 2.0.0
+    "@redwoodjs/core": ^2.0.0
   languageName: unknown
   linkType: soft
 
@@ -23916,9 +23916,9 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "web@workspace:web"
   dependencies:
-    "@redwoodjs/forms": 2.0.0
-    "@redwoodjs/router": 2.0.0
-    "@redwoodjs/web": 2.0.0
+    "@redwoodjs/forms": ^2.0.0
+    "@redwoodjs/router": ^2.0.0
+    "@redwoodjs/web": ^2.0.0
     prop-types: 15.8.1
     react: 17.0.2
     react-dom: 17.0.2

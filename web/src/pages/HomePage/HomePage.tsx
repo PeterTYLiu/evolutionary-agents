@@ -1,4 +1,5 @@
 import { MetaTags } from '@redwoodjs/web'
+import './HomePage.scss'
 import { useState, useRef, useEffect } from 'react'
 import { SimState, Panel } from 'types/types'
 import Agent from 'src/logic/agent'
@@ -19,6 +20,7 @@ import {
 } from 'src/variables'
 // Components
 import SamplesGraph from 'src/components/SamplesGraph/SamplesGraph'
+import NumberInput from 'src/components/NumberInput/NumberInput'
 // Utilities
 import randCoord from 'src/utilities/randCoord'
 import distBetween from 'src/utilities/distBetween'
@@ -84,7 +86,7 @@ export default function HomePage() {
         setSimState('before')
     }
 
-    // Change the state every 50ms
+    // Change the state every X ms
     useEffect(() => {
         if (simState !== 'active') return
         const interval = setInterval(() => {
@@ -250,6 +252,7 @@ export default function HomePage() {
         if (!canvas || simState !== 'active') return
         const ctx = canvas.getContext('2d') as CanvasRenderingContext2D
         ctx.clearRect(0, 0, canvasWidth, canvasHeight)
+        ctx.textAlign = 'center'
 
         // Draw the agents' perception areas
         ctx.fillStyle = '#fee'
@@ -314,12 +317,17 @@ export default function HomePage() {
             if (a.periodsSurvived < 15) ctx.fillText('Mitosis!', a.x, a.y - 6)
             if (a.energy === 0) ctx.fillText('ARGH!', a.x, a.y - 6)
         })
+        // Draw the current period
+        ctx.textAlign = 'start'
+        ctx.font = '18px arial'
+        ctx.fillStyle = '#000000aa'
+        ctx.fillText('Period: ' + currentTick, 20, 32)
     }, [currentTick, simState])
 
     return (
         <main>
             <MetaTags title="Home" description="Home page" />
-            <div>
+            <div className="controls">
                 {simState === 'before' ? (
                     <button type="button" onClick={startSim}>
                         Start
@@ -339,34 +347,21 @@ export default function HomePage() {
                         Resume
                     </button>
                 )}
-                <div style={{ display: 'inline' }}>
-                    <input
-                        type="range"
-                        id="animation-speed"
-                        name="animation-speed"
-                        min="1"
-                        max="200"
-                        value={animationSpeed}
-                        onChange={(e) =>
-                            setAnimationSpeed(parseInt(e.target.value))
-                        }
-                    />
-                    <label htmlFor="animation-speed">Frame duration</label>
-                </div>
-                <div style={{ display: 'inline' }}>
-                    <input
-                        type="range"
-                        id="food-gen"
-                        name="food-gen"
-                        min="1"
-                        max="20"
-                        value={foodGenRate}
-                        onChange={(e) =>
-                            setFoodGenRate(parseInt(e.target.value))
-                        }
-                    />
-                    <label htmlFor="food-gen">Food scarcity</label>
-                </div>
+
+                <NumberInput
+                    name="Frame duration"
+                    value={animationSpeed}
+                    min={1}
+                    max={200}
+                    setValue={setAnimationSpeed}
+                />
+                <NumberInput
+                    name="Food scarcity"
+                    value={foodGenRate}
+                    min={1}
+                    max={20}
+                    setValue={setFoodGenRate}
+                />
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start' }}>
                 <canvas
@@ -381,7 +376,6 @@ export default function HomePage() {
                 />
                 <div className="panel">
                     <div className="panel--header">
-                        <h3>Period: {currentTick}</h3>
                         <div className="panel--toggles">
                             <button
                                 className={panel === 'graphs' ? 'active' : ''}

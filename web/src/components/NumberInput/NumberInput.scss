@@ -1,0 +1,11 @@
+.NumberInput {
+    flex-basis: 250px;
+    > div {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 4px;
+    }
+    input[type='range'] {
+        width: 100%;
+    }
+}
